@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using CatalogTCG.API.Model;
 using CatalogTCG.API.Data;
+using CatalogTCG.API.Model.CatalogItemDTO;
+using System.Net;
 
 [Route("api/[controller]")]
 [ApiController]
@@ -13,11 +15,27 @@ public class ItemsController : ControllerBase
         _context = context;
     }
 
-    // GET: api/CatalogItem
+    // GET: api/Items
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<CatalogItem>>> GetCatalogItem()
+    [ProducesResponseType(typeof(PaginatedItemsDTO<CatalogItemDTO>), (int)HttpStatusCode.OK)]
+    [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+    public async Task<ActionResult> GetCatalogItems([FromQuery] int pageSize=10, [FromQuery] int pageIndex=0)
     {
-        return await _context.CatalogItems.ToListAsync();
+        var itemsOnPage = await _context.CatalogItems.Include(item => item.CatalogType).Select(item => new CatalogItemDTO()
+        {
+            Name = item.Name,
+            Description = item.Description,
+            Price = item.Price,
+            CatalogType = item.CatalogType.Type,
+            CatalogBrand = item.CatalogBrand.Brand,
+            AvailableStock = item.AvailableStock,
+            RestockThreshold = item.RestockThreshold,
+            MaxStockThreshold = item.MaxStockThreshold,
+            onReorder = item.onReorder
+        }).OrderBy(c => c.Name).Skip(pageSize * pageIndex).Take(pageSize).ToListAsync();
+        var totalItems = await _context.CatalogItems.LongCountAsync();
+        var model= new PaginatedItemsDTO<CatalogItemDTO>(pageIndex,pageSize,totalItems,itemsOnPage);
+        return Ok(model);
     }
 
     // GET: api/CatalogItem/5
