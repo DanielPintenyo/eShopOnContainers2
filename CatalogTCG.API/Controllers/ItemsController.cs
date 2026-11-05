@@ -4,15 +4,18 @@ using CatalogTCG.API.Model;
 using CatalogTCG.API.Data;
 using CatalogTCG.API.Model.CatalogItemDTO;
 using System.Net;
+using CatalogTCG.API.Integration.ItemEvents;
 
 [Route("api/[controller]")]
 [ApiController]
 public class ItemsController : ControllerBase
 {
     private readonly CatalogContext _context;
-    public ItemsController(CatalogContext context)
+    private readonly IEventsPublisher _eventsPublisher;
+    public ItemsController(CatalogContext context, IEventsPublisher eventsPublisher)
     {
         _context = context;
+        _eventsPublisher = eventsPublisher;
     }
 
     // GET: api/Items
@@ -97,8 +100,24 @@ public class ItemsController : ControllerBase
         item.AvailableStock=itemDTO.AvailableStock;
         item.Description = itemDTO.Description;
         _context.Entry(item).State= EntityState.Modified;
-        await _context.SaveChangesAsync();
-        return itemDTO;
+        try
+        {
+            await _context.SaveChangesAsync();
+            if (priceChanged)
+            {
+                var itemPriceChangedEvent = new ItemPriceChangedEvent
+                {
+                    Name = item.Name,
+                    Price = item.Price,
+                };
+                _eventsPublisher.Publish(itemPriceChangedEvent);
+            }
+        }
+        catch (DbUpdateConcurrencyException) 
+        {
+            throw;
+        }
+        return Ok(itemDTO);
     }
 
     // POST: api/CatalogItem

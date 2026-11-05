@@ -1,13 +1,38 @@
 using CatalogTCG.API.Data;
+using CatalogTCG.API.Integration;
+using CatalogTCG.API.Integration.ItemEvents;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
 builder.Services.AddControllers();
-builder.Services.AddDbContext<CatalogContext>(opt =>opt.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+string? db2Use = Environment.GetEnvironmentVariable("DB2USE");
+
+if (db2Use == "DockerSQLServer")
+{
+        builder.Services.AddDbContext<CatalogContext>(options => {
+            options.UseSqlServer(builder.Configuration
+            .GetConnectionString("SQLServerDockerConnection"),
+            sqlServerOptionsAction: sqlOptions => {
+                //Recuperamos el nombre del Ensamblado donde está la migración
+                sqlOptions.MigrationsAssembly(
+    Assembly.GetExecutingAssembly().GetName().Name);
+
+                //Configuramos una conexión resiliente a la BD
+                sqlOptions.
+    EnableRetryOnFailure(maxRetryCount: 5,
+    maxRetryDelay: TimeSpan.FromSeconds(30),
+    errorNumbersToAdd: null);
+            });
+        });
+}
+else { 
+    builder.Services.AddDbContext<CatalogContext>(opt => opt.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+}
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(
@@ -34,7 +59,13 @@ builder.Services.AddSwaggerGen(
 
     });
 
-    var app = builder.Build();
+    builder.Services.Configure<RabbitOptions>(builder.Configuration.GetSection("RabbitMq"));
+    
+    builder.Services.Configure<RabbitMqExchange>(builder.Configuration.GetSection("RabbitMqExchange"));
+    
+    builder.Services.AddSingleton<IEventsPublisher, EventsPublisher>();
+
+var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -64,5 +95,23 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.MapControllers();
+
+try
+{
+    // registering the publisher
+    app.Lifetime.ApplicationStarted.Register(() => {
+        var eventsPublisher = app.Services.GetService<IEventsPublisher>();
+        eventsPublisher.Start();
+    });
+    app.Lifetime.ApplicationStopping.Register(() => {
+        var eventsPublisher = app.Services.GetService<IEventsPublisher>();
+        eventsPublisher.Stop();
+    });
+}
+catch (Exception ex)
+{
+    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+    logger.LogError(ex, "An error while connecting to RabbitMq.");
+}
 
 app.Run();

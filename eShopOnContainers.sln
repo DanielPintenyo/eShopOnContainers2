@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.37614.0 d17.14
+VisualStudioVersion = 17.14.37614.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
 EndProject
@@ -12,6 +12,11 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Services", "Services", "{0DF118E7-0086-43A7-8664-D3FB1C6B1DEF}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CatalogTCG.API", "CatalogTCG.API\CatalogTCG.API.csproj", "{C4033322-22FE-4AE4-876F-57CECDEC2991}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Elementos de la solución", "Elementos de la solución", "{DBCCA5D8-26DE-41F4-82B5-4BBFF68B2267}"
+	ProjectSection(SolutionItems) = preProject
+		docker-compose.yml = docker-compose.yml
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -31,6 +36,7 @@ Global
 		{2EAC187A-979C-4670-B35E-17BE40A4C886} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{0DF118E7-0086-43A7-8664-D3FB1C6B1DEF} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{C4033322-22FE-4AE4-876F-57CECDEC2991} = {0DF118E7-0086-43A7-8664-D3FB1C6B1DEF}
+		{DBCCA5D8-26DE-41F4-82B5-4BBFF68B2267} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {0CCD262C-32AC-49D6-A08A-8A5139BD7061}
